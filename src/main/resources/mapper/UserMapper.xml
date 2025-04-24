@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cq.RssHub.mapper.UserMapper">
+
+    <resultMap id="UserMap" type="com.cq.RssHub.pojo.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="email" column="email"/>
+        <result property="nickname" column="nickname"/>
+    </resultMap>
+
+    <insert id="addUser" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (username, password, email)
+        VALUES (#{username}, #{password}, #{email})
+    </insert>
+
+
+    <select id="getUserByUsername" resultMap="UserMap">
+        SELECT id, username, password, email, nickname
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <update id="updateUser">
+        update users
+        set username = #{user.username}, email = #{user.email}
+        where username= #{username}
+    </update>
+    <update id="updateUserPassword">
+        update users
+        set password = #{user.password}
+        where username= #{username}
+    </update>
+</mapper>

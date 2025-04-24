@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cq.RssHub.mapper.ArticleMapper">
+    <!-- 文章结果映射 -->
+    <resultMap id="ArticleMap" type="com.cq.RssHub.pojo.Article">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="link" column="link"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="author" column="author"/>
+        <result property="publishDate" column="publish_date"/>
+        <result property="isRead" column="is_read"/>
+        <result property="isStarred" column="is_starred"/>
+        <result property="readCount" column="read_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <!-- 非数据库字段 -->
+        <result property="sourceName" column="source_name"/>
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+
+    <!-- 插入文章 -->
+    <insert id="insert" parameterType="com.cq.RssHub.pojo.Article" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO article (
+            title, 
+            link, 
+            source_id, 
+            summary, 
+            content, 
+            author, 
+            publish_date, 
+            is_read, 
+            is_starred, 
+            read_count, 
+            create_time, 
+            update_time
+        ) VALUES (
+            #{title},
+            #{link},
+            #{sourceId},
+            #{summary},
+            #{content},
+            #{author},
+            #{publishDate},
+            #{isRead},
+            #{isStarred},
+            #{readCount},
+            #{createTime},
+            #{updateTime}
+        )
+    </insert>
+
+    <!-- 批量插入文章 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO article (
+            title, 
+            link, 
+            source_id, 
+            summary, 
+            content, 
+            author, 
+            publish_date, 
+            is_read, 
+            is_starred, 
+            read_count, 
+            create_time, 
+            update_time
+        ) VALUES 
+        <foreach collection="articles" item="article" separator=",">
+            (
+                #{article.title},
+                #{article.link},
+                #{article.sourceId},
+                #{article.summary},
+                #{article.content},
+                #{article.author},
+                #{article.publishDate},
+                #{article.isRead},
+                #{article.isStarred},
+                #{article.readCount},
+                #{article.createTime},
+                #{article.updateTime}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 更新文章 -->
+    <update id="update" parameterType="com.cq.RssHub.pojo.Article">
+        UPDATE article SET
+            is_read = #{isRead},
+            is_starred = #{isStarred},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 增加阅读次数 -->
+    <update id="incrementReadCount">
+        UPDATE article SET
+            read_count = read_count + 1,
+            is_read = true,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除文章 -->
+    <delete id="deleteById">
+        DELETE FROM article WHERE id = #{id}
+    </delete>
+
+    <!-- 批量删除文章 -->
+    <delete id="deleteByIds">
+        DELETE FROM article WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 删除过期文章 -->
+    <delete id="deleteOlderThan">
+        DELETE FROM article
+        WHERE publish_date &lt; #{cutoffDate}
+        AND is_starred = false
+    </delete>
+
+    <!-- 根据条件查询文章列表 -->
+    <select id="findByFilters" resultMap="ArticleMap">
+        SELECT 
+            a.*,
+            rs.name as source_name,
+            c.name as category_name
+        FROM article a
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        LEFT JOIN category c ON rs.category_id = c.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (a.title LIKE CONCAT('%', #{keyword}, '%') 
+                OR a.summary LIKE CONCAT('%', #{keyword}, '%')
+                OR a.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="sourceId != null">
+                AND a.source_id = #{sourceId}
+            </if>
+            <if test="categoryId != null">
+                AND rs.category_id = #{categoryId}
+            </if>
+            <if test="startDate != null">
+                AND a.publish_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND a.publish_date &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY a.publish_date DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{offset}, #{limit}
+        </if>
+    </select>
+
+    <!-- 获取符合条件的文章总数 -->
+    <select id="countByFilters" resultType="int">
+        SELECT COUNT(*)
+        FROM article a
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (a.title LIKE CONCAT('%', #{keyword}, '%') 
+                OR a.summary LIKE CONCAT('%', #{keyword}, '%')
+                OR a.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="sourceId != null">
+                AND a.source_id = #{sourceId}
+            </if>
+            <if test="categoryId != null">
+                AND rs.category_id = #{categoryId}
+            </if>
+            <if test="startDate != null">
+                AND a.publish_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND a.publish_date &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID查询文章 -->
+    <select id="findById" resultMap="ArticleMap">
+        SELECT 
+            a.*,
+            rs.name as source_name,
+            c.name as category_name
+        FROM article a
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        LEFT JOIN category c ON rs.category_id = c.id
+        WHERE a.id = #{id}
+    </select>
+
+    <!-- 获取最新文章列表 -->
+    <select id="findLatestArticles" resultMap="ArticleMap">
+        SELECT 
+            a.*,
+            rs.name as source_name
+        FROM article a
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        ORDER BY a.publish_date DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查找已存在的链接 -->
+    <select id="findExistingLinks" resultType="string">
+        SELECT link FROM article
+        WHERE link IN
+        <foreach item="link" collection="list" open="(" separator="," close=")">
+            #{link}
+        </foreach>
+    </select>
+</mapper>

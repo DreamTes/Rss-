@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cq.RssHub.mapper.CategoryMapper">
+    <resultMap id="CategoryMap" type="com.cq.RssHub.pojo.Category">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="sourceCount" column="source_count"/>
+        <result property="articleCount" column="article_count"/>
+    </resultMap>
+    <insert id="insert" parameterType="com.cq.RssHub.pojo.Category" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO category (
+            name, 
+            description, 
+            create_time, 
+            update_time
+        ) VALUES (
+            #{name},
+            #{description},
+            NOW(),
+            NOW()
+        )
+    </insert>
+    <update id="update" parameterType="com.cq.RssHub.pojo.Category">
+        UPDATE category SET
+            name = #{name},
+            description = #{description},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+    <delete id="deleteById">
+        DELETE FROM category WHERE id = #{id}
+    </delete>
+    <select id="findAll" resultMap="CategoryMap">
+        SELECT 
+            c.*,
+            COUNT(DISTINCT rs.id) as source_count,
+            COUNT(DISTINCT a.id) as article_count
+        FROM category c
+        LEFT JOIN rss_source rs ON c.id = rs.category_id
+        LEFT JOIN article a ON rs.id = a.source_id
+        GROUP BY c.id, c.name, c.description, c.create_time, c.update_time
+    </select>
+    <select id="findById" resultMap="CategoryMap">
+        SELECT * FROM category WHERE id = #{id}
+    </select>
+</mapper>

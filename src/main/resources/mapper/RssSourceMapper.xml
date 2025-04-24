@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cq.RssHub.mapper.RssSourceMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="RssSourceMap" type="com.cq.RssHub.pojo.RssSource">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="url" column="url"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="description" column="description"/>
+        <result property="frequency" column="frequency"/>
+        <result property="lastFetchTime" column="last_fetch_time"/>
+        <result property="status" column="status"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="articleCount" column="article_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <!-- 非数据库字段 -->
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+
+    <!-- 查询所有RSS源 -->
+    <select id="findAll" resultMap="RssSourceMap">
+        SELECT rs.*, c.name as category_name
+        FROM rss_source rs
+        LEFT JOIN category c ON rs.category_id = c.id
+        ORDER BY rs.create_time DESC
+    </select>
+
+    <!-- 根据ID查询RSS源 -->
+    <select id="findById" resultMap="RssSourceMap">
+        SELECT rs.*, c.name as category_name
+        FROM rss_source rs
+        LEFT JOIN category c ON rs.category_id = c.id
+        WHERE rs.id = #{id}
+    </select>
+
+    <!-- 条件查询RSS源 -->
+    <select id="findByFilters" resultMap="RssSourceMap">
+        SELECT rs.*, c.name as category_name
+        FROM rss_source rs
+        LEFT JOIN category c ON rs.category_id = c.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (rs.name LIKE CONCAT('%', #{keyword}, '%') 
+                OR rs.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="categoryId != null">
+                AND rs.category_id = #{categoryId}
+            </if>
+            <if test="status != null and status != ''">
+                AND rs.status = #{status}
+            </if>
+        </where>
+        ORDER BY rs.create_time DESC
+    </select>
+
+    <!-- 插入RSS源 -->
+    <insert id="insert" parameterType="com.cq.RssHub.pojo.RssSource" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO rss_source (
+            name, 
+            url, 
+            category_id, 
+            description, 
+            frequency, 
+            status, 
+            article_count, 
+            create_time, 
+            update_time
+        ) VALUES (
+            #{name},
+            #{url},
+            #{categoryId},
+            #{description},
+            #{frequency},
+            #{status},
+            #{articleCount},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 更新RSS源 -->
+    <update id="update" parameterType="com.cq.RssHub.pojo.RssSource">
+        UPDATE rss_source 
+        SET 
+            name = #{name},
+            url = #{url},
+            category_id = #{categoryId},
+            description = #{description},
+            frequency = #{frequency},
+            status = #{status},
+            <if test="errorMessage != null">
+                error_message = #{errorMessage},
+            </if>
+            <if test="articleCount != null">
+                article_count = #{articleCount},
+            </if>
+            <if test="lastFetchTime != null">
+                last_fetch_time = #{lastFetchTime},
+            </if>
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除RSS源 -->
+    <delete id="deleteById">
+        DELETE FROM rss_source WHERE id = #{id}
+    </delete>
+
+</mapper>
