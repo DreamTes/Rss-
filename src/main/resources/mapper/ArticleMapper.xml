@@ -10,6 +10,7 @@
         <result property="summary" column="summary"/>
         <result property="content" column="content"/>
         <result property="author" column="author"/>
+        <result property="coverImage" column="cover_image"/>
         <result property="publishDate" column="publish_date"/>
         <result property="isRead" column="is_read"/>
         <result property="isStarred" column="is_starred"/>
@@ -30,6 +31,7 @@
             summary, 
             content, 
             author, 
+            cover_image,
             publish_date, 
             is_read, 
             is_starred, 
@@ -43,6 +45,7 @@
             #{summary},
             #{content},
             #{author},
+            #{coverImage},
             #{publishDate},
             #{isRead},
             #{isStarred},
@@ -61,6 +64,7 @@
             summary, 
             content, 
             author, 
+            cover_image,
             publish_date, 
             is_read, 
             is_starred, 
@@ -76,6 +80,7 @@
                 #{article.summary},
                 #{article.content},
                 #{article.author},
+                #{article.coverImage},
                 #{article.publishDate},
                 #{article.isRead},
                 #{article.isStarred},
@@ -91,6 +96,7 @@
         UPDATE article SET
             is_read = #{isRead},
             is_starred = #{isStarred},
+            cover_image = #{coverImage},
             update_time = NOW()
         WHERE id = #{id}
     </update>
@@ -214,5 +220,17 @@
         <foreach item="link" collection="list" open="(" separator="," close=")">
             #{link}
         </foreach>
+    </select>
+
+    <!-- 查找所有没有封面图的文章 -->
+    <select id="findArticlesWithoutCoverImage" resultMap="ArticleMap">
+        SELECT 
+            a.*,
+            rs.name as source_name
+        FROM article a
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        WHERE a.cover_image IS NULL 
+        OR a.cover_image = ''
+        ORDER BY a.publish_date DESC
     </select>
 </mapper>

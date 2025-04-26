@@ -90,13 +90,18 @@ public class RssSourceController {
     @PostMapping("/{id}/fetch")
     public ResponseMessage<?> fetchRssSource(@PathVariable Integer id) {
         try {
+            // 先抓取新文章
             int newArticlesCount = rssService.fetchRssSourceNow(id);
+            
+            // 然后处理封面图 - 为该源的所有文章重新提取封面图
+            int updatedCoverImages = rssService.reprocessArticleCoverImages(id);
             
             Map<String, Object> result = new HashMap<>();
             result.put("taskId", id.toString());
             result.put("newArticlesCount", newArticlesCount);
+            result.put("updatedCoverImagesCount", updatedCoverImages);
             
-            return ResponseMessage.success("抓取任务已完成", result);
+            return ResponseMessage.success("抓取任务已完成，已更新" + updatedCoverImages + "篇文章的封面图", result);
         } catch (Exception e) {
             return ResponseMessage.error("抓取失败: " + e.getMessage());
         }

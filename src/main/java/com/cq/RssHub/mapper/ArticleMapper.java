@@ -92,4 +92,10 @@ public interface ArticleMapper {
      */
     @Select("SELECT COUNT(*) FROM article WHERE create_time BETWEEN #{startDate} AND #{endDate}")
     int countByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * 查找所有没有封面图的文章
+     * @return 没有封面图的文章列表
+     */
+    List<Article> findArticlesWithoutCoverImage();
 } 

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cq.RssHub.mapper.FetchTaskMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="FetchTaskMap" type="com.cq.RssHub.pojo.FetchTask">
+        <id property="id" column="id"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="status" column="status"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="articlesAdded" column="articles_added"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="createTime" column="create_time"/>
+        <!-- 非数据库字段 -->
+        <result property="sourceName" column="source_name"/>
+    </resultMap>
+
+    <!-- 插入任务 -->
+    <insert id="insert" parameterType="com.cq.RssHub.pojo.FetchTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO fetch_task (
+            source_id, 
+            status, 
+            start_time, 
+            end_time, 
+            articles_added, 
+            error_message, 
+            create_time
+        ) VALUES (
+            #{sourceId},
+            #{status},
+            #{startTime},
+            #{endTime},
+            #{articlesAdded},
+            #{errorMessage},
+            NOW()
+        )
+    </insert>
+
+    <!-- 更新任务 -->
+    <update id="update" parameterType="com.cq.RssHub.pojo.FetchTask">
+        UPDATE fetch_task SET 
+            status = #{status}, 
+            end_time = #{endTime}, 
+            articles_added = #{articlesAdded}, 
+            error_message = #{errorMessage} 
+        WHERE id = #{id}
+    </update>
+
+    <!-- 获取最近任务列表 -->
+    <select id="findRecentTasks" resultMap="FetchTaskMap">
+        SELECT ft.*, rs.name AS source_name 
+        FROM fetch_task ft
+        JOIN rss_source rs ON ft.source_id = rs.id
+        ORDER BY ft.start_time DESC 
+        LIMIT #{limit}
+    </select>
+
+    <!-- 统计今日成功任务数 -->
+    <select id="countTodaySuccessfulTasks" resultType="int">
+        SELECT COUNT(*) 
+        FROM fetch_task 
+        WHERE status = 'completed' 
+        AND DATE(start_time) = CURDATE()
+    </select>
+
+    <!-- 统计今日失败任务数 -->
+    <select id="countTodayFailedTasks" resultType="int">
+        SELECT COUNT(*) 
+        FROM fetch_task 
+        WHERE status = 'failed' 
+        AND DATE(start_time) = CURDATE()
+    </select>
+
+</mapper>

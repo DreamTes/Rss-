@@ -46,4 +46,7 @@
     <select id="findById" resultMap="CategoryMap">
         SELECT * FROM category WHERE id = #{id}
     </select>
+    <select id="findAllWithStats" resultType="com.cq.RssHub.pojo.Category">
+
+    </select>
 </mapper>

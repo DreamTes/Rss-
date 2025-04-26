@@ -138,6 +138,15 @@ public class RssService {
                 return savedArticles;
             }
             
+            // 添加日志记录每篇文章的封面图
+            for (Article article : articles) {
+                if (article.getCoverImage() != null) {
+                    logger.info("文章 [{}] 获取到封面图: {}", article.getTitle(), article.getCoverImage());
+                } else {
+                    logger.warn("文章 [{}] 没有封面图", article.getTitle());
+                }
+            }
+            
             // 过滤已存在的文章（通过链接判断）
             List<String> links = articles.stream()
                     .map(Article::getLink)
@@ -153,6 +162,7 @@ public class RssService {
             for (Article article : newArticles) {
                 articleMapper.insert(article);
                 savedArticles.add(article);
+                logger.info("保存文章 [{}], 封面图: {}", article.getTitle(), article.getCoverImage());
             }
             
             logger.info("从RSS源 {} 抓取了 {} 篇新文章", rssSource.getName(), savedArticles.size());
@@ -188,5 +198,54 @@ public class RssService {
         // 根据频率（分钟）计算是否需要更新
         long minutesSinceLastFetch = java.time.Duration.between(lastFetch, now).toMinutes();
         return minutesSinceLastFetch >= source.getFrequency();
+    }
+    
+    /**
+     * 重新提取已存在文章的封面图
+     * 可用于修复之前没有封面图的文章
+     * @param sourceId 指定源ID，如果为null则处理所有文章
+     * @return 更新文章数量
+     */
+    @Transactional
+    public int reprocessArticleCoverImages(Integer sourceId) {
+        logger.info("开始重新处理文章封面图，sourceId={}", sourceId);
+        int updatedCount = 0;
+        
+        try {
+            // 获取需要处理的文章列表
+            List<Article> articles;
+            if (sourceId != null) {
+                articles = articleMapper.findByFilters(null, sourceId, null, null, null, null, null);
+            } else {
+                // 获取所有封面图为空的文章
+                articles = articleMapper.findArticlesWithoutCoverImage();
+            }
+            
+            logger.info("找到{}篇需要处理封面图的文章", articles.size());
+            
+            for (Article article : articles) {
+                if (article.getContent() != null && !article.getContent().isEmpty()) {
+                    // 使用RssParserService提取封面图
+                    String coverImage = rssParserService.extractFirstImage(article.getContent());
+                    
+                    if (coverImage != null && !coverImage.isEmpty()) {
+                        logger.info("为文章[{}]提取到封面图: {}", article.getTitle(), coverImage);
+                        article.setCoverImage(coverImage);
+                        // 更新文章
+                        articleMapper.update(article);
+                        updatedCount++;
+                    } else {
+                        logger.warn("无法为文章[{}]提取有效封面图", article.getTitle());
+                    }
+                }
+            }
+            
+            logger.info("成功更新{}篇文章的封面图", updatedCount);
+        } catch (Exception e) {
+            logger.error("重新处理文章封面图时发生错误", e);
+            throw new RuntimeException("处理封面图失败", e);
+        }
+        
+        return updatedCount;
     }
 } 

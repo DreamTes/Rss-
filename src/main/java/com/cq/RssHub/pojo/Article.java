@@ -12,6 +12,7 @@ public class Article {
     private String summary;
     private String content;
     private String author;
+    private String coverImage;
     private LocalDateTime publishDate;
     private Boolean isRead = false;
     private Boolean isStarred = false;
