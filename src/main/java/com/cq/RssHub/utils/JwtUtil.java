@@ -1,5 +1,7 @@
 package com.cq.RssHub.utils;
 import com.cq.RssHub.config.JwtProperties;
+import com.cq.RssHub.mapper.UserMapper;
+import com.cq.RssHub.pojo.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -24,6 +26,9 @@ public class JwtUtil {
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+    
+    @Autowired
+    private UserMapper userMapper;
 
     // Redis中存储黑名单token的前缀
     private static final String TOKEN_BLACKLIST_PREFIX = "jwt:blacklist:";
@@ -57,6 +62,32 @@ public class JwtUtil {
             return null;
         }
         return getClaimFromToken(token, Claims::getSubject);
+    }
+    
+    /**
+     * 从token中获取用户ID
+     * @param token JWT令牌
+     * @return 用户ID，如果找不到则返回null
+     */
+    public Integer getUserIdFromToken(String token) {
+        try {
+            // 先检查token是否在黑名单中
+            if (isTokenInBlacklist(token)) {
+                return null;
+            }
+            
+            // 从token中获取用户名
+            String username = getUsernameFromToken(token);
+            if (username == null) {
+                return null;
+            }
+            
+            // 通过用户名查询用户ID
+            User user = userMapper.getUserByUsername(username);
+            return user != null ? user.getId() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // 从token中获取map

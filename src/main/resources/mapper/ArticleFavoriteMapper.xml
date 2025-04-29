@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cq.RssHub.mapper.ArticleFavoriteMapper">
+    <!-- 结果映射 -->
+    <resultMap id="ArticleFavoriteMap" type="com.cq.RssHub.pojo.ArticleFavorite">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="articleId" column="article_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="articleTitle" column="title"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="sourceName" column="source_name"/>
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+    
+    <!-- 添加收藏 -->
+    <insert id="insert" parameterType="com.cq.RssHub.pojo.ArticleFavorite" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO article_favorite (user_id, article_id, create_time, update_time)
+        VALUES (#{userId}, #{articleId}, NOW(), NOW())
+    </insert>
+    
+    <!-- 删除收藏 -->
+    <delete id="delete">
+        DELETE FROM article_favorite
+        WHERE user_id = #{userId} AND article_id = #{articleId}
+    </delete>
+    
+    <!-- 查询用户所有收藏，包含文章信息 -->
+    <select id="findByUserId" resultMap="ArticleFavoriteMap">
+        SELECT 
+            af.*, 
+            a.title, 
+            a.cover_image,
+            rs.name as source_name,
+            c.name as category_name
+        FROM article_favorite af
+        LEFT JOIN article a ON af.article_id = a.id
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        LEFT JOIN category c ON rs.category_id = c.id
+        WHERE af.user_id = #{userId}
+        ORDER BY af.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 计算用户收藏总数 -->
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) 
+        FROM article_favorite
+        WHERE user_id = #{userId}
+    </select>
+    
+    <!-- 检查用户是否已收藏该文章 -->
+    <select id="findByUserIdAndArticleId" resultMap="ArticleFavoriteMap">
+        SELECT *
+        FROM article_favorite
+        WHERE user_id = #{userId} AND article_id = #{articleId}
+    </select>
+    
+    <!-- 获取用户最近的收藏文章 -->
+    <select id="findRecentByUserId" resultMap="ArticleFavoriteMap">
+        SELECT 
+            af.*, 
+            a.title, 
+            a.cover_image,
+            rs.name as source_name,
+            c.name as category_name
+        FROM article_favorite af
+        LEFT JOIN article a ON af.article_id = a.id
+        LEFT JOIN rss_source rs ON a.source_id = rs.id
+        LEFT JOIN category c ON rs.category_id = c.id
+        WHERE af.user_id = #{userId}
+        ORDER BY af.create_time DESC
+        LIMIT #{limit}
+    </select>
+    
+    <!-- 获取文章的收藏数量 -->
+    <select id="countByArticleId" resultType="int">
+        SELECT COUNT(*) 
+        FROM article_favorite
+        WHERE article_id = #{articleId}
+    </select>
+</mapper> 

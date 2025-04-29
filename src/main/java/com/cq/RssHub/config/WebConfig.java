@@ -26,7 +26,11 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         System.out.println("CORS配置已加载");
         registry.addMapping("/**") // 允许所有请求路径
-                .allowedOrigins("http://localhost:5173") // 前端地址
+                .allowedOrigins(
+                    "http://localhost:5173",//前台展示页面
+                    "http://localhost:5174"//后台管理页面
+                
+                ) // 前端地址
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
