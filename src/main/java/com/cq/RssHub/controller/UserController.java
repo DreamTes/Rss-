@@ -4,6 +4,8 @@ import com.cq.RssHub.pojo.DTO.UserDTO;
 import com.cq.RssHub.pojo.LoginRequest;
 import com.cq.RssHub.pojo.ResponseMessage;
 import com.cq.RssHub.pojo.User;
+import com.cq.RssHub.pojo.vo.LoginResponseVO;
+import com.cq.RssHub.pojo.vo.UserInfoVO;
 import com.cq.RssHub.service.UserService;
 import com.cq.RssHub.utils.JwtUtil;
 import com.cq.RssHub.utils.MD5Util;
@@ -45,21 +47,19 @@ public class UserController {
         if(userService.UserByUsername(loginRequest.getUsername())){
             User loginUser = userService.GetUserByUsername(loginRequest.getUsername());
             if(loginUser.getPassword().equals(MD5Util.MD5(loginRequest.getPassword()))){
-                String token = jwtUtil.generateToken(loginUser.getUsername());
+                String token = jwtUtil.generateToken(loginUser.getUsername());//JWT生成token
 
-                // 创建符合接口文档的返回数据结构
-                Map<String, Object> data = new HashMap<>();
-                data.put("token", token);
+                // 创建UserInfoVO对象
+                UserInfoVO userInfoVO = new UserInfoVO(
+                    loginUser.getId(),
+                    loginUser.getUsername(),
+                    loginUser.getEmail()
+                );
+                
+                // 创建LoginResponseVO对象
+                LoginResponseVO responseVO = new LoginResponseVO(token, userInfoVO);
 
-                // 创建用户信息
-                Map<String, Object> userInfo = new HashMap<>();
-                userInfo.put("id", loginUser.getId());
-                userInfo.put("username", loginUser.getUsername());
-                userInfo.put("email", loginUser.getEmail());
-
-                data.put("user", userInfo);
-
-                return ResponseMessage.success("登录成功", data);
+                return ResponseMessage.success("登录成功", responseVO); //统一的返回格式
             }
             else {
                 return ResponseMessage.error("密码错误");
@@ -82,13 +82,14 @@ public class UserController {
 
                 if(user != null) {
                     // 创建用户信息对象
-                    Map<String, Object> userInfo = new HashMap<>();
-                    userInfo.put("id", user.getId());
-                    userInfo.put("username", user.getUsername());
-                    userInfo.put("email", user.getEmail());
+                    UserInfoVO userInfoVO = new UserInfoVO(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getEmail()
+                    );
 
                     // 返回成功响应，包含用户信息
-                    return ResponseMessage.success("已登录", userInfo);
+                    return ResponseMessage.success("已登录", userInfoVO);
                 }
             }
 
@@ -133,13 +134,13 @@ public class UserController {
             if (username != null) {
                 User user = userService.GetUserByUsername(username);
                 // 构建返回数据，不包含敏感信息
-                Map<String, Object> profile = new HashMap<>();
-                profile.put("id", user.getId());
-                profile.put("username", user.getUsername());
-                profile.put("nickname", user.getNickname());
-                profile.put("email", user.getEmail());
+                UserInfoVO userInfoVO = new UserInfoVO(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail()
+                );
 
-                return ResponseMessage.success("获取成功", profile);
+                return ResponseMessage.success("获取成功", userInfoVO);
             }
             return ResponseMessage.unauthorized("未登录");
         } catch (Exception e) {
@@ -158,13 +159,13 @@ public class UserController {
                 User updated = userService.UpdateUser(username,userDTO);
 
                 // 构建返回数据
-                Map<String, Object> result = new HashMap<>();
-                result.put("id", updated.getId());
-                result.put("username", updated.getUsername());
-                result.put("nickname", updated.getNickname());
-                result.put("email", updated.getEmail());
+                UserInfoVO userInfoVO = new UserInfoVO(
+                    updated.getId(),
+                    updated.getUsername(),
+                    updated.getEmail()
+                );
 
-                return ResponseMessage.success("更新成功", result);
+                return ResponseMessage.success("更新成功", userInfoVO);
             }
             return ResponseMessage.unauthorized("未登录");
         } catch (Exception e) {

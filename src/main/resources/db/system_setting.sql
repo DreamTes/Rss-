@@ -1,0 +1,5 @@
+INSERT INTO `system_setting` (`id`, `setting_key`, `setting_value`, `description`, `create_time`, `update_time`) VALUES (1, 'systemName', 'RSS管理系统', '系统名称', '2025-04-20 07:51:38', '2025-04-20 07:51:38');
+INSERT INTO `system_setting` (`id`, `setting_key`, `setting_value`, `description`, `create_time`, `update_time`) VALUES (2, 'defaultFetchFrequency', '60', '默认抓取频率(分钟)', '2025-04-20 07:51:38', '2025-04-20 07:51:38');
+INSERT INTO `system_setting` (`id`, `setting_key`, `setting_value`, `description`, `create_time`, `update_time`) VALUES (3, 'maxArticleAge', '30', '文章最大保留天数', '2025-04-20 07:51:38', '2025-04-20 07:51:38');
+INSERT INTO `system_setting` (`id`, `setting_key`, `setting_value`, `description`, `create_time`, `update_time`) VALUES (4, 'cleanupInterval', '24', '清理间隔(小时)', '2025-04-20 07:51:38', '2025-04-20 07:51:38');
+INSERT INTO `system_setting` (`id`, `setting_key`, `setting_value`, `description`, `create_time`, `update_time`) VALUES (5, 'theme', 'light', '默认主题', '2025-04-20 07:51:38', '2025-04-20 07:51:38');
