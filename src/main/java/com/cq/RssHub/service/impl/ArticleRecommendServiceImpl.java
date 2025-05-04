@@ -32,8 +32,20 @@ public class ArticleRecommendServiceImpl implements ArticleRecommendService {
      * 停用词集合
      */
     private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
+        // 中文停用词
         "的", "了", "和", "与", "这", "那", "是", "在", "有", "为", "啊", "吗", "么", "嗯", "呢", "吧",
-        "the", "a", "an", "of", "to", "and", "in", "for", "on", "with", "by", "at", "is", "are", "was", "were"
+        "对", "我", "你", "他", "她", "它", "们", "个", "之", "而", "以", "及", "等", "也", "就", "但",
+        "都", "又", "将", "把", "能", "可以", "使", "让", "被", "所", "如", "要", "想", "会", "得", "到",
+        "从", "上", "下", "前", "后", "里", "外", "内", "中", "间", "很", "更", "最", "非常", "越", "于",
+        "或", "某", "某些", "这些", "那些", "每", "各", "各种", "一些", "只是", "因为", "如果", "虽然", "一个",
+        "这个", "这样", "那样", "什么", "哪", "哪些", "如何", "怎么", "怎样", "一", "二", "三", "四", "五",
+        // 英文停用词
+        "the", "a", "an", "of", "to", "and", "in", "for", "on", "with", "by", "at", "is", "are", "was", "were",
+        "this", "that", "these", "those", "it", "its", "they", "them", "their", "we", "our", "us", "i", "my", "me",
+        "you", "your", "he", "him", "his", "she", "her", "who", "what", "which", "where", "when", "why", "how",
+        "all", "any", "both", "each", "more", "most", "other", "some", "such", "no", "not", "only", "than",
+        "too", "very", "can", "will", "just", "should", "now", "also", "as", "be", "been", "but", "had", "has",
+        "have", "if", "or", "because", "while", "about", "up", "down", "out", "then", "so"
     ));
     
     @Override
@@ -214,6 +226,16 @@ public class ArticleRecommendServiceImpl implements ArticleRecommendService {
         if (text == null || profile.isEmpty()) return 0.0;
         
         Map<String, Double> textTerms = extractTermsWithWeight(text);
+        if (textTerms.isEmpty()) return 0.0;
+        
+        // 检查是否有关键词匹配 - 直接检查整个文本是否包含特定关键词
+        double keywordMatchBoost = 0.0;
+        for (String term : profile.keySet()) {
+            // 对于长度>=2的词语，如果在文本中找到，增加基础分
+            if (term.length() >= 2 && text.contains(term)) {
+                keywordMatchBoost += 0.1 * profile.get(term);
+            }
+        }
         
         // 计算余弦相似度
         double dotProduct = 0.0;
@@ -224,7 +246,12 @@ public class ArticleRecommendServiceImpl implements ArticleRecommendService {
             }
         }
         
-        // 如果没有共同词语，相似度为0
+        // 如果没有共同词语，但有关键词匹配，返回提升后的相似度
+        if (dotProduct == 0.0 && keywordMatchBoost > 0.0) {
+            return keywordMatchBoost; // 返回基于关键词匹配的相似度
+        }
+        
+        // 如果没有共同词语和关键词匹配，相似度为0
         if (dotProduct == 0.0) return 0.0;
         
         // 计算向量长度
@@ -232,7 +259,10 @@ public class ArticleRecommendServiceImpl implements ArticleRecommendService {
         double textNorm = Math.sqrt(textTerms.values().stream().mapToDouble(v -> v * v).sum());
         
         // 余弦相似度
-        return dotProduct / (profileNorm * textNorm);
+        double cosineSimilarity = dotProduct / (profileNorm * textNorm);
+        
+        // 添加关键词匹配提升
+        return cosineSimilarity + keywordMatchBoost;
     }
     
     /**
@@ -243,22 +273,59 @@ public class ArticleRecommendServiceImpl implements ArticleRecommendService {
         
         Map<String, Double> terms = new HashMap<>();
         
-        // 简单分词（中英文混合）
-        String[] words = text.toLowerCase()
-                .replaceAll("[\\p{P}\\p{S}]", " ") // 去除标点和符号
-                .split("\\s+");
+        // 改进的中英文混合分词
+        String preprocessedText = text.toLowerCase()
+                .replaceAll("[\\p{P}\\p{S}]", " "); // 去除标点和符号
         
-        // 计算词频
+        // 处理英文词语 - 按空格分割
+        String[] words = preprocessedText.split("\\s+");
         for (String word : words) {
             if (word.length() < 2 || STOP_WORDS.contains(word)) continue;
             
             terms.put(word, terms.getOrDefault(word, 0.0) + 1.0);
         }
         
+        // 特殊处理中文 - 简单的N-gram方法处理连续中文字符
+        // 提取2-gram和3-gram中文短语
+        String chineseOnly = preprocessedText.replaceAll("[^\\u4e00-\\u9fa5]", ""); // 仅保留中文字符
+        
+        // 提取2-gram中文词组（连续两个汉字可能是一个词）
+        if (chineseOnly.length() >= 2) {
+            for (int i = 0; i < chineseOnly.length() - 1; i++) {
+                String bigram = chineseOnly.substring(i, i + 2);
+                if (!STOP_WORDS.contains(bigram)) {
+                    terms.put(bigram, terms.getOrDefault(bigram, 0.0) + 0.5); // 权重略低
+                }
+            }
+        }
+        
+        // 提取3-gram中文词组（连续三个汉字可能是一个词）
+        if (chineseOnly.length() >= 3) {
+            for (int i = 0; i < chineseOnly.length() - 2; i++) {
+                String trigram = chineseOnly.substring(i, i + 3);
+                if (!STOP_WORDS.contains(trigram)) {
+                    terms.put(trigram, terms.getOrDefault(trigram, 0.0) + 0.8); // 较高权重
+                }
+            }
+        }
+        
+        // 处理常见的中文关键词（技术、主题词等）
+        String[] commonKeywords = {"科技", "人工智能", "机器学习", "深度学习", "算法", "编程", 
+                                  "旅游", "美食", "风景", "攻略", "推荐"};
+        
+        for (String keyword : commonKeywords) {
+            if (text.contains(keyword) && !STOP_WORDS.contains(keyword)) {
+                // 给予常见关键词额外权重
+                terms.put(keyword, terms.getOrDefault(keyword, 0.0) + 1.5);
+            }
+        }
+        
         // 简单的TF计算
         double totalTerms = terms.values().stream().mapToDouble(Double::doubleValue).sum();
-        for (Map.Entry<String, Double> entry : terms.entrySet()) {
-            terms.put(entry.getKey(), entry.getValue() / totalTerms);
+        if (totalTerms > 0) {  // 避免除以零
+            for (Map.Entry<String, Double> entry : terms.entrySet()) {
+                terms.put(entry.getKey(), entry.getValue() / totalTerms);
+            }
         }
         
         return terms;
